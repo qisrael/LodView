@@ -1,9 +1,8 @@
 /* ***************** */
 /*  CUSTOM CSS HERE  */
 /* ***************** */
-
 div#logoBanner div#logo {
-	background-size: 134px 40px; 
+	background-size: 134px 40px;
 	background-image: url(../img/logo-header-lodview.png);
 	height: 80px;
 	background-position: left center;
@@ -12,9 +11,15 @@ div#logoBanner div#logo {
 	width: 150px;
 }
 
-@media (-webkit-min-device-pixel-ratio : 2) , (min-resolution : 192dpi) {
-
+@media ( -webkit-min-device-pixel-ratio : 2) , ( min-resolution : 192dpi) {
 	div#logoBanner div#logo {
 		background-image: url(../img/logo-header-lodview@2x.png);
 	}
 }
+
+/* ********************************** */
+/*  CUSTOM FOOTER, HIDDEN BY DEFAULT  */
+/* ********************************** */
+#customFooter {
+	display: none;
+} 

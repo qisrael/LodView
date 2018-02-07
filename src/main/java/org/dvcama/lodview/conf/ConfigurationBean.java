@@ -3,6 +3,7 @@ package org.dvcama.lodview.conf;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -15,16 +16,37 @@ import org.springframework.web.context.ServletContextAware;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.NodeIterator;
 import com.hp.hpl.jena.rdf.model.RDFNode;
+import com.hp.hpl.jena.rdf.model.ResIterator;
+import com.hp.hpl.jena.rdf.model.Resource;
 
 public class ConfigurationBean implements ServletContextAware, Cloneable {
 
-	private Model confModel = null;
-	private ServletContext context;
+	protected Model confModel = null;
+	protected ServletContext context;
+	protected String confFile;
+	private String endPointType;
+	private String redirectionStrategy;
+	private String forceIriEncoding;
+	private String httpRedirectExcludeList;
+	private String homeUrl;
+	private String license;
+	private String httpRedirectSuffix;
+	private String httpRedirectPrefix;
+	private String endPointUrl;
+	private String IRInamespace;
+	private String contentEncoding;
+	private String staticResourceURL;
+	private String preferredLanguage;
+	private String publicUrlPrefix = null;
+	private String publicUrlSuffix = "";
+	private String authUsername = null;
+	private String authPassword = null;
+	private String defaultInverseBehaviour = "collapse";
 
-	private String confFile, homeUrl, httpRedirectSuffix, EndPointUrl, IRInamespace, contentEncoding, staticResourceURL, preferredLanguage, publicUrlPrefix = null, publicUrlSuffix = "", authUsername = null, authPassword = null, defaultInverseBehaviour = "collapse";
+	private List<String> defaultQueries = null, defaultRawDataQueries = null, defaultInversesQueries = null, defaultInversesTest = null, defaultInversesCountQueries = null, typeProperties = null, audioProperties = null, imageProperties = null, videoProperties = null, linkingProperties = null, titleProperties = null, descriptionProperties = null, longitudeProperties = null, latitudeProperties = null;
+	private List<String> colorPair = null, skipDomains = null, mainOntologiesPrefixes = null;
+	private Map<String, String> colorPairMatcher = null;
 
-	private List<String> defaultQueries, defaultRawDataQueries, defaultInversesQueries, defaultInversesTest, defaultInversesCountQueries, typeProperties, imageProperties, linkingProperties, titleProperties, descriptionProperties, longitudeProperties, latitudeProperties = null;
-	private List<String> colorPair = null, skipDomains = null;
 	Random rand = new Random();
 
 	public ConfigurationBean() throws IOException, Exception {
@@ -42,13 +64,18 @@ public class ConfigurationBean implements ServletContextAware, Cloneable {
 		}
 		confModel = RDFDataMgr.loadModel(configFile.getAbsolutePath());
 
-		EndPointUrl = getSingleConfValue("endpoint");
+		endPointUrl = getSingleConfValue("endpoint");
+		endPointType = getSingleConfValue("endpointType", "");
 		authPassword = getSingleConfValue("authPassword");
 		authUsername = getSingleConfValue("authUsername");
+		forceIriEncoding = getSingleConfValue("forceIriEncoding", "auto");
+		redirectionStrategy = getSingleConfValue("redirectionStrategy", "");
 
 		IRInamespace = getSingleConfValue("IRInamespace", "<not provided>");
-		
+
 		httpRedirectSuffix = getSingleConfValue("httpRedirectSuffix", "");
+		httpRedirectPrefix = getSingleConfValue("httpRedirectPrefix", "");
+		httpRedirectExcludeList = getSingleConfValue("httpRedirectExcludeList", "");
 
 		publicUrlPrefix = getSingleConfValue("publicUrlPrefix", "");
 		publicUrlPrefix = publicUrlPrefix.replaceAll(".+/auto$", context.getContextPath() + "/");
@@ -64,20 +91,46 @@ public class ConfigurationBean implements ServletContextAware, Cloneable {
 		titleProperties = getMultiConfValue("titleProperties");
 		descriptionProperties = getMultiConfValue("descriptionProperties");
 		imageProperties = getMultiConfValue("imageProperties");
+		audioProperties = getMultiConfValue("audioProperties");
+		videoProperties = getMultiConfValue("videoProperties");
 		linkingProperties = getMultiConfValue("linkingProperties");
 		longitudeProperties = getMultiConfValue("longitudeProperties");
 		latitudeProperties = getMultiConfValue("latitudeProperties");
 
 		defaultQueries = getMultiConfValue("defaultQueries");
 		defaultRawDataQueries = getMultiConfValue("defaultRawDataQueries");
+
 		defaultInversesQueries = getMultiConfValue("defaultInversesQueries");
 		defaultInversesTest = getMultiConfValue("defaultInversesTest");
 		defaultInversesCountQueries = getMultiConfValue("defaultInversesCountQueries");
 
 		defaultInverseBehaviour = getSingleConfValue("defaultInverseBehaviour", defaultInverseBehaviour);
+		mainOntologiesPrefixes = getMultiConfValue("mainOntologiesPrefixes");
+
+		license = getSingleConfValue("license", "");
 
 		colorPair = getMultiConfValue("colorPair");
+
+		if (colorPair != null && colorPair.size() == 1 && colorPair.get(0).startsWith("http://")) {
+			colorPairMatcher = populateColorPairMatcher();
+		}
+
 		skipDomains = getMultiConfValue("skipDomains");
+	}
+
+	private Map<String, String> populateColorPairMatcher() {
+		Map<String, String> result = new HashMap<String, String>();
+		ResIterator iter = confModel.listSubjectsWithProperty(confModel.createProperty(confModel.getNsPrefixURI("conf"), "hasColorPair"));
+		while (iter.hasNext()) {
+			Resource res = iter.next();
+			NodeIterator values = confModel.listObjectsOfProperty(res, confModel.createProperty(confModel.getNsPrefixURI("conf"), "hasColorPair"));
+			while (values.hasNext()) {
+				RDFNode node = values.next();
+				result.put(res.toString(), node.toString());
+				break;
+			}
+		}
+		return result;
 	}
 
 	private String getSingleConfValue(String prop) {
@@ -103,10 +156,6 @@ public class ConfigurationBean implements ServletContextAware, Cloneable {
 		return result;
 	}
 
-	public void setConfFile(String confFile) {
-		this.confFile = confFile;
-	}
-
 	@Override
 	public void setServletContext(ServletContext arg0) {
 		this.context = arg0;
@@ -126,6 +175,14 @@ public class ConfigurationBean implements ServletContextAware, Cloneable {
 		return confModel.getNsPrefixMap();
 	}
 
+	public String getRedirectionStrategy() {
+		return redirectionStrategy;
+	}
+
+	public String getPreferredLanguage() {
+		return preferredLanguage;
+	}
+
 	public String getNsPrefixURI(String prefix) {
 		return confModel.getNsPrefixURI(prefix);
 	}
@@ -135,15 +192,7 @@ public class ConfigurationBean implements ServletContextAware, Cloneable {
 	}
 
 	public String getEndPointUrl() {
-		return EndPointUrl;
-	}
-
-	public void setEndPointUrl(String EndPointUrl) {
-		this.EndPointUrl = EndPointUrl;
-	}
-
-	public void setIRInamespace(String IRInamespace) {
-		this.IRInamespace = IRInamespace;
+		return endPointUrl;
 	}
 
 	public List<String> getDefaultQueries() {
@@ -164,14 +213,6 @@ public class ConfigurationBean implements ServletContextAware, Cloneable {
 
 	public String getPublicUrlSuffix() {
 		return publicUrlSuffix;
-	}
-
-	public void setPublicUrlPrefix(String publicUrlPrefix) {
-		this.publicUrlPrefix = publicUrlPrefix;
-	}
-
-	public void setPublicUrlSuffix(String publicUrlSuffix) {
-		this.publicUrlSuffix = publicUrlSuffix;
 	}
 
 	public List<String> getDefaultRawDataQueries() {
@@ -218,12 +259,20 @@ public class ConfigurationBean implements ServletContextAware, Cloneable {
 		return imageProperties;
 	}
 
+	public List<String> getAudioProperties() {
+		return audioProperties;
+	}
+
+	public List<String> getVideoProperties() {
+		return videoProperties;
+	}
+
 	public List<String> getLinkingProperties() {
 		return linkingProperties;
 	}
 
-	public String getPreferredLanguage() {
-		return preferredLanguage;
+	public String getLicense() {
+		return license;
 	}
 
 	public List<String> getColorPair() {
@@ -235,40 +284,24 @@ public class ConfigurationBean implements ServletContextAware, Cloneable {
 		return colorPair.get(randomNum);
 	}
 
-	public void setColorPair(List<String> colorPair) {
-		this.colorPair = colorPair;
-	}
-
 	public List<String> getSkipDomains() {
 		return skipDomains;
-	}
-
-	public void setSkipDomains(List<String> skipDomains) {
-		this.skipDomains = skipDomains;
 	}
 
 	public String getAuthPassword() {
 		return authPassword;
 	}
 
-	public void setAuthPassword(String authPassword) {
-		this.authPassword = authPassword;
-	}
-
 	public String getAuthUsername() {
 		return authUsername;
-	}
-
-	public void setAuthUsername(String authUsername) {
-		this.authUsername = authUsername;
 	}
 
 	public String getDefaultInverseBehaviour() {
 		return defaultInverseBehaviour;
 	}
 
-	public void setDefaultInverseBehaviour(String defaultInverseBehaviour) {
-		this.defaultInverseBehaviour = defaultInverseBehaviour;
+	public Map<String, String> getColorPairMatcher() {
+		return colorPairMatcher;
 	}
 
 	@Override
@@ -282,24 +315,40 @@ public class ConfigurationBean implements ServletContextAware, Cloneable {
 
 	@Override
 	public String toString() {
-		return "ConfigurationBean [confModel=" + confModel + ", context=" + context + ", confFile=" + confFile + ", EndPointUrl=" + EndPointUrl + ", IRInamespace=" + IRInamespace + ", contentEncoding=" + contentEncoding + ", staticResourceURL=" + staticResourceURL + ", preferredLanguage=" + preferredLanguage + ", publicUrlPrefix=" + publicUrlPrefix + ", authUsername=" + authUsername + ", authPassword=" + authPassword + ", defaultInverseBehaviour=" + defaultInverseBehaviour + ", defaultQueries=" + defaultQueries + ", defaultRawDataQueries=" + defaultRawDataQueries + ", defaultInversesQueries=" + defaultInversesQueries + ", defaultInversesTest=" + defaultInversesTest + ", defaultInversesCountQueries=" + defaultInversesCountQueries + ", typeProperties=" + typeProperties
-				+ ", imageProperties=" + imageProperties + ", linkingProperties=" + linkingProperties + ", titleProperties=" + titleProperties + ", descriptionProperties=" + descriptionProperties + ", longitudeProperties=" + longitudeProperties + ", latitudeProperties=" + latitudeProperties + ", colorPair=" + colorPair + ", skipDomains=" + skipDomains + ", rand=" + rand + "]";
+		return "ConfigurationBean [confModel=" + confModel + ", context=" + context + ", confFile=" + confFile + ", endPointUrl=" + endPointUrl + ", IRInamespace=" + IRInamespace + ", contentEncoding=" + contentEncoding + ", staticResourceURL=" + staticResourceURL + ", preferredLanguage=" + preferredLanguage + ", publicUrlPrefix=" + publicUrlPrefix + ", authUsername=" + authUsername + ", authPassword=" + authPassword + ", defaultInverseBehaviour=" + defaultInverseBehaviour + ", defaultQueries=" + defaultQueries + ", defaultRawDataQueries=" + defaultRawDataQueries + ", defaultInversesQueries=" + defaultInversesQueries + ", defaultInversesTest=" + defaultInversesTest + ", defaultInversesCountQueries=" + defaultInversesCountQueries + ", typeProperties=" + typeProperties
+				+ ", imageProperties=" + imageProperties + ", audioProperties=" + audioProperties + ", videoProperties=" + videoProperties + ", linkingProperties=" + linkingProperties + ", titleProperties=" + titleProperties + ", descriptionProperties=" + descriptionProperties + ", longitudeProperties=" + longitudeProperties + ", latitudeProperties=" + latitudeProperties + ", colorPair=" + colorPair + ", skipDomains=" + skipDomains + ", rand=" + rand + "]";
 	}
 
 	public String getHomeUrl() {
 		return homeUrl;
 	}
 
-	public void setHomeUrl(String homeUrl) {
-		this.homeUrl = homeUrl;
-	}
-
 	public String getHttpRedirectSuffix() {
 		return httpRedirectSuffix;
 	}
 
-	public void setHttpRedirectSuffix(String httpRedirectSuffix) {
-		this.httpRedirectSuffix = httpRedirectSuffix;
+	public String getHttpRedirectPrefix() {
+		return httpRedirectPrefix;
+	}
+
+	public String getHttpRedirectExcludeList() {
+		return httpRedirectExcludeList;
+	}
+
+	public List<String> getMainOntologiesPrefixes() {
+		return mainOntologiesPrefixes;
+	}
+
+	public String getForceIriEncoding() {
+		return forceIriEncoding;
+	}
+
+	public String getEndPointType() {
+		return endPointType;
+	}
+
+	public void setConfFile(String confFile) {
+		this.confFile = confFile;
 	}
 
 }

@@ -4,32 +4,46 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ResultBean {
 
 	private String title, latitude = null, longitude = null, mainIRI = null;
 	private PropertyBean descriptionProperty = null, typeProperty = null;
-	private List<String> images = null, linking = null;
-	private HashMap<String, LinkedHashMap<PropertyBean, List<TripleBean>>> literals = new HashMap<String, LinkedHashMap<PropertyBean, List<TripleBean>>>(), resources = new HashMap<String, LinkedHashMap<PropertyBean, List<TripleBean>>>(), bnodes = new HashMap<String, LinkedHashMap<PropertyBean, List<TripleBean>>>();
+	private List<String> images = null, linking = null, videos = null, audios = null;
+	private Map<String, LinkedHashMap<PropertyBean, List<TripleBean>>> literals = new HashMap<String, LinkedHashMap<PropertyBean, List<TripleBean>>>(), resources = new HashMap<String, LinkedHashMap<PropertyBean, List<TripleBean>>>(), bnodes = new HashMap<String, LinkedHashMap<PropertyBean, List<TripleBean>>>();
 
-	private HashMap<String, LinkedHashMap<PropertyBean, List<TripleBean>>> addEle(String IRI, TripleBean tripleBean, HashMap<String, LinkedHashMap<PropertyBean, List<TripleBean>>> resources) {
-		if (resources.get(IRI) == null || resources.get(IRI).get(tripleBean.getProperty()) == null) {
-			LinkedHashMap<PropertyBean, List<TripleBean>> a = resources.get(IRI);
+	private Map<String, LinkedHashMap<PropertyBean, List<TripleBean>>> addEle(String IRI, TripleBean tripleBean, Map<String, LinkedHashMap<PropertyBean, List<TripleBean>>> ele) {
+		if (ele.get(IRI) == null || ele.get(IRI).get(tripleBean.getProperty()) == null) {
+			LinkedHashMap<PropertyBean, List<TripleBean>> a = ele.get(IRI);
 			if (a == null) {
 				a = new LinkedHashMap<PropertyBean, List<TripleBean>>();
 			}
 			List<TripleBean> b = new ArrayList<TripleBean>();
 			b.add(tripleBean);
 			a.put(tripleBean.getProperty(), b);
-			resources.put(IRI, a);
+			ele.put(IRI, a);
 		} else {
-			LinkedHashMap<PropertyBean, List<TripleBean>> a = resources.get(IRI);
+			LinkedHashMap<PropertyBean, List<TripleBean>> a = ele.get(IRI);
 			List<TripleBean> b = a.get(tripleBean.getProperty());
 			b.add(tripleBean);
 			a.put(tripleBean.getProperty(), b);
-			resources.put(IRI, a);
+			ele.put(IRI, a);
 		}
-		return resources;
+		return ele;
+	}
+
+	private Map<String, LinkedHashMap<PropertyBean, List<TripleBean>>> removeEle(String IRI, TripleBean tripleBean, Map<String, LinkedHashMap<PropertyBean, List<TripleBean>>> ele) {
+		if (ele.get(IRI) == null || ele.get(IRI).get(tripleBean.getProperty()) == null) {
+
+		} else {
+			LinkedHashMap<PropertyBean, List<TripleBean>> a = ele.get(IRI);
+			List<TripleBean> b = a.get(tripleBean.getProperty());
+			b.remove(tripleBean);
+			a.put(tripleBean.getProperty(), b);
+			ele.put(IRI, a);
+		}
+		return ele;
 	}
 
 	public String getTitle() {
@@ -77,6 +91,9 @@ public class ResultBean {
 		return literals.get(IRI);
 	}
 
+	public  Map<String, LinkedHashMap<PropertyBean, List<TripleBean>>> getLiterals() {
+		return literals;
+	}
 	public LinkedHashMap<PropertyBean, List<TripleBean>> getBnodes(String IRI) {
 		return bnodes.get(IRI);
 	}
@@ -91,6 +108,14 @@ public class ResultBean {
 
 	public String getLatitude() {
 		return latitude;
+	}
+
+	public List<String> getAudios() {
+		return audios;
+	}
+
+	public List<String> getVideos() {
+		return videos;
 	}
 
 	public void setLatitude(String latitude) {
@@ -132,6 +157,20 @@ public class ResultBean {
 		resources = addEle(IRI, tripleBean, resources);
 	}
 
+	public void removeBnode(TripleBean tripleBean, String IRI) {
+
+		bnodes = removeEle(IRI, tripleBean, bnodes);
+	}
+
+	public void removeLiteral(TripleBean tripleBean, String IRI) {
+		literals = removeEle(IRI, tripleBean, literals);
+
+	}
+
+	public void removeResource(TripleBean tripleBean, String IRI) {
+		resources = removeEle(IRI, tripleBean, resources);
+	}
+
 	public PropertyBean getDescriptionProperty() {
 		return descriptionProperty;
 	}
@@ -146,6 +185,14 @@ public class ResultBean {
 
 	public void setTypeProperty(PropertyBean typeProperty) {
 		this.typeProperty = typeProperty;
+	}
+
+	public void setVideos(List<String> videos) {
+		this.videos = videos;
+	}
+
+	public void setAudios(List<String> audios) {
+		this.audios = audios;
 	}
 
 }
